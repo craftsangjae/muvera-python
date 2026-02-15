@@ -161,7 +161,8 @@ def load_nanobeir_dataset(repo_id: str) -> tuple[dict, dict, dict]:
 
     total_relevant = sum(len(docs) for docs in qrels.values())
     logging.info(
-        f"Loaded {len(corpus)} documents, {len(queries)} queries, {total_relevant} relevance judgments."
+        f"Loaded {len(corpus)} documents, {len(queries)} queries, "
+        f"{total_relevant} relevance judgments."
     )
     return corpus, queries, qrels
 

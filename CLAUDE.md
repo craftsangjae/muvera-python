@@ -126,10 +126,21 @@ Variable-length batch processing flattens all point clouds, processes them toget
 
 ## Testing
 
-- All tests in `tests/` directory
-- `test_reference.py` validates against reference implementation (sionic-ai/muvera-py)
-- Use fixtures for common test data (see `test_muvera.py`)
-- Tests validate: parameter validation, shape handling, encoding correctness, batch equivalence
+### Test Organization
+
+- **`test_helper.py`**: Low-level helper function tests (Gray code, projections, etc.)
+- **`test_muvera.py`**: Core Muvera class tests (shapes, validation, reproducibility)
+- **`test_reference.py`**: Validation against reference implementation (sionic-ai/muvera-py)
+- **`test_real_colbert.py`**: Real-world ColBERT embedding tests using NanoBEIR fixtures
+
+### Real Data Testing
+
+`test_real_colbert.py` uses cached ColBERT embeddings from NanoBEIR to validate performance on real data:
+- **Fixtures**: 35 documents, 5 queries, 35 relevance judgments (~2.2MB cached in git)
+- **Tests**: FDE encoding, correlation with native MaxSim, Recall@K metrics
+- **Generation**: `python scripts/generate_test_fixtures.py` (requires pylate, datasets, torch)
+
+Fixtures are cached in `tests/fixtures/colbert_nanobeir/` to avoid slow model inference during CI/testing.
 
 ## Key Parameters
 
