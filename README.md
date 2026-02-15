@@ -13,7 +13,7 @@ This library wraps the full algorithm behind a **single `Muvera` class** with a 
 ## Installation
 
 ```bash
-pip install muvera
+pip install muvera # Not Yet... 
 ```
 
 Development install:
@@ -68,3 +68,4 @@ scores = query_fdes @ doc_fdes.T  # (10, 100)
 
 - [MuVERA: Multi-Vector Retrieval via Fixed Dimensional Encodings](https://arxiv.org/abs/2405.19504)
 - [Google graph-mining C++ implementation](https://github.com/google/graph-mining/blob/main/sketching/point_cloud/fixed_dimensional_encoding.cc)
+- [muvera-py](https://github.com/sionic-ai/muvera-py)

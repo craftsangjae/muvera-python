@@ -19,13 +19,13 @@ from typing import Literal
 import numpy as np
 
 from muvera.helper import (
-    ams_projection_matrix,
-    count_sketch_vector,
+    ams_projection_matrix_from_seed,
+    count_sketch_vector_from_seed,
     distance_to_partition,
     gray_code_to_binary,
     partition_index_gray,
     partition_indices_gray_batch,
-    simhash_matrix,
+    simhash_matrix_from_seed,
 )
 
 
@@ -34,8 +34,8 @@ class Muvera:
 
     Uses the MuVERA algorithm to encode variable-length multi-vector
     representations (point clouds) into fixed-dimensional single vectors.
-    The dot product between encoded vectors approximates the similarity
-    between the original multi-vector sets.
+    The dot product between encoded vectors approximates the Chamfer
+    similarity (MaxSim) between the original multi-vector sets.
 
     Parameters
     ----------
@@ -125,17 +125,6 @@ class Muvera:
         self._proj_dim: int = dimension if self._use_identity else projection_dimension  # type: ignore[assignment]
         self._fde_dim: int = num_repetitions * self._num_partitions * self._proj_dim
 
-        # Pre-generate per-repetition RNG seeds (deterministic from master seed).
-        # Each repetition gets an independent seed to ensure reproducibility
-        # regardless of call order.
-        master_rng = np.random.default_rng(seed)
-        self._rep_seeds: np.ndarray = master_rng.integers(
-            0, 2**63, size=num_repetitions, dtype=np.int64
-        )
-
-        # Separate seed for the final projection
-        self._final_proj_seed: int = int(master_rng.integers(0, 2**63))
-
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
@@ -158,7 +147,7 @@ class Muvera:
     # Public methods
     # ------------------------------------------------------------------
 
-    def encode_documents(self, documents: np.ndarray) -> np.ndarray:
+    def encode_documents(self, documents: np.ndarray | list[np.ndarray]) -> np.ndarray:
         """Encode document point clouds into Fixed Dimensional Encodings.
 
         Each document is a set of embedding vectors (point cloud) and is
@@ -167,11 +156,17 @@ class Muvera:
 
         Parameters
         ----------
-        documents : numpy.ndarray
-            Document embedding array. Supports the following shapes:
+        documents : numpy.ndarray or list[numpy.ndarray]
+            Document embedding(s). Supports the following formats:
 
-            - ``(num_vectors, dimension)`` : Single document.
-            - ``(num_documents, num_vectors, dimension)`` : Batch of documents.
+            - ``np.ndarray`` of shape ``(num_vectors, dimension)`` :
+              Single document.
+            - ``np.ndarray`` of shape ``(num_documents, num_vectors, dimension)`` :
+              Batch of documents with equal number of vectors.
+            - ``list[np.ndarray]`` where each element has shape
+              ``(num_vectors_i, dimension)`` : Batch of documents with
+              **variable** number of vectors per document. This is the
+              recommended format for real-world ColBERT embeddings.
 
         Returns
         -------
@@ -192,9 +187,11 @@ class Muvera:
         each partition, corresponding to the ``AVERAGE`` encoding type in the
         original C++ implementation.
         """
+        if isinstance(documents, list):
+            return self._encode_varlen_batch(documents, is_query=False)
         return self._encode(documents, is_query=False)
 
-    def encode_queries(self, queries: np.ndarray) -> np.ndarray:
+    def encode_queries(self, queries: np.ndarray | list[np.ndarray]) -> np.ndarray:
         """Encode query point clouds into Fixed Dimensional Encodings.
 
         Each query is a set of embedding vectors (point cloud) and is
@@ -202,11 +199,17 @@ class Muvera:
 
         Parameters
         ----------
-        queries : numpy.ndarray
-            Query embedding array. Supports the following shapes:
+        queries : numpy.ndarray or list[numpy.ndarray]
+            Query embedding(s). Supports the same formats as
+            ``encode_documents``:
 
-            - ``(num_vectors, dimension)`` : Single query.
-            - ``(num_queries, num_vectors, dimension)`` : Batch of queries.
+            - ``np.ndarray`` of shape ``(num_vectors, dimension)`` :
+              Single query.
+            - ``np.ndarray`` of shape ``(num_queries, num_vectors, dimension)`` :
+              Batch of queries with equal number of vectors.
+            - ``list[np.ndarray]`` where each element has shape
+              ``(num_vectors_i, dimension)`` : Batch of queries with
+              **variable** number of vectors per query.
 
         Returns
         -------
@@ -227,6 +230,8 @@ class Muvera:
         and ``fill_empty_partitions`` is ignored. This corresponds to the
         ``DEFAULT_SUM`` encoding type in the original C++ implementation.
         """
+        if isinstance(queries, list):
+            return self._encode_varlen_batch(queries, is_query=True)
         return self._encode(queries, is_query=True)
 
     # ------------------------------------------------------------------
@@ -283,17 +288,19 @@ class Muvera:
         out = np.zeros(self._fde_dim, dtype=np.float32)
 
         for rep in range(self.num_repetitions):
-            rng = np.random.default_rng(self._rep_seeds[rep])
+            current_seed = self.seed + rep
 
             # SimHash
-            sim_matrix = simhash_matrix(rng, self.dimension, self.num_simhash_projections)
+            sim_matrix = simhash_matrix_from_seed(
+                self.dimension, self.num_simhash_projections, current_seed
+            )
             sketches = point_cloud @ sim_matrix
 
             # Projection
             if self._use_identity:
                 projected = point_cloud
             else:
-                ams_matrix = ams_projection_matrix(rng, self.dimension, proj_dim)
+                ams_matrix = ams_projection_matrix_from_seed(self.dimension, proj_dim, current_seed)
                 projected = point_cloud @ ams_matrix
 
             # Partition assignment
@@ -329,8 +336,7 @@ class Muvera:
 
         # Final projection
         if self.final_projection_dimension is not None and self.final_projection_dimension > 0:
-            final_rng = np.random.default_rng(self._final_proj_seed)
-            out = count_sketch_vector(final_rng, out, self.final_projection_dimension)
+            out = count_sketch_vector_from_seed(out, self.final_projection_dimension, self.seed)
 
         return out
 
@@ -365,17 +371,19 @@ class Muvera:
         doc_indices = np.repeat(np.arange(batch_size), num_points)
 
         for rep in range(self.num_repetitions):
-            rng = np.random.default_rng(self._rep_seeds[rep])
+            current_seed = self.seed + rep
 
             # SimHash
-            sim_matrix = simhash_matrix(rng, self.dimension, self.num_simhash_projections)
+            sim_matrix = simhash_matrix_from_seed(
+                self.dimension, self.num_simhash_projections, current_seed
+            )
             all_sketches = flat_points @ sim_matrix  # (B*N, num_projections)
 
             # Projection
             if self._use_identity:
                 all_projected = flat_points
             else:
-                ams_matrix = ams_projection_matrix(rng, self.dimension, proj_dim)
+                ams_matrix = ams_projection_matrix_from_seed(self.dimension, proj_dim, current_seed)
                 all_projected = flat_points @ ams_matrix  # (B*N, proj_dim)
 
             # Vectorised partition indices
@@ -424,8 +432,114 @@ class Muvera:
         if self.final_projection_dimension is not None and self.final_projection_dimension > 0:
             result = np.zeros((batch_size, self.final_projection_dimension), dtype=np.float32)
             for i in range(batch_size):
-                final_rng = np.random.default_rng(self._final_proj_seed)
-                result[i] = count_sketch_vector(final_rng, out[i], self.final_projection_dimension)
+                result[i] = count_sketch_vector_from_seed(
+                    out[i], self.final_projection_dimension, self.seed
+                )
+            out = result
+
+        return out
+
+    def _encode_varlen_batch(self, point_clouds: list[np.ndarray], *, is_query: bool) -> np.ndarray:
+        """Encode a batch of variable-length point clouds using vectorised operations.
+
+        Parameters
+        ----------
+        point_clouds : list[numpy.ndarray]
+            Each element has shape ``(num_vectors_i, dimension)``.
+        is_query : bool
+            If True, uses SUM; if False, uses AVERAGE.
+
+        Returns
+        -------
+        numpy.ndarray
+            Shape ``(len(point_clouds), output_dimension)``.
+        """
+        batch_size = len(point_clouds)
+        if batch_size == 0:
+            return np.zeros((0, self.output_dimension), dtype=np.float32)
+
+        for i, pc in enumerate(point_clouds):
+            if pc.ndim != 2 or pc.shape[1] != self.dimension:
+                raise ValueError(
+                    f"Element {i}: expected shape (N, {self.dimension}), got {pc.shape}"
+                )
+
+        doc_lengths = np.array([pc.shape[0] for pc in point_clouds], dtype=np.int32)
+        doc_boundaries = np.insert(np.cumsum(doc_lengths), 0, 0)
+        doc_indices = np.repeat(np.arange(batch_size), doc_lengths)
+
+        flat_points = np.vstack(point_clouds).astype(np.float32)
+
+        num_partitions = self._num_partitions
+        proj_dim = self._proj_dim
+        out = np.zeros((batch_size, self._fde_dim), dtype=np.float32)
+
+        for rep in range(self.num_repetitions):
+            current_seed = self.seed + rep
+
+            # SimHash
+            sim_matrix = simhash_matrix_from_seed(
+                self.dimension, self.num_simhash_projections, current_seed
+            )
+            all_sketches = flat_points @ sim_matrix
+
+            # Projection
+            if self._use_identity:
+                all_projected = flat_points
+            else:
+                ams_matrix = ams_projection_matrix_from_seed(self.dimension, proj_dim, current_seed)
+                all_projected = flat_points @ ams_matrix
+
+            # Vectorised partition indices
+            part_indices = partition_indices_gray_batch(all_sketches)
+
+            # Aggregate into partitions per document
+            rep_fde = np.zeros((batch_size, num_partitions, proj_dim), dtype=np.float32)
+            partition_counts = np.zeros((batch_size, num_partitions), dtype=np.int32)
+
+            np.add.at(partition_counts, (doc_indices, part_indices), 1)
+
+            doc_part = doc_indices * num_partitions + part_indices
+            base = doc_part * proj_dim
+            flat_rep_fde = rep_fde.reshape(-1)
+            for d in range(proj_dim):
+                np.add.at(flat_rep_fde, base + d, all_projected[:, d])
+            rep_fde = flat_rep_fde.reshape(batch_size, num_partitions, proj_dim)
+
+            # AVERAGE encoding (document)
+            if not is_query:
+                counts_3d = partition_counts[:, :, np.newaxis]
+                np.divide(rep_fde, counts_3d, out=rep_fde, where=counts_3d > 0)
+
+                if self.fill_empty_partitions and self.num_simhash_projections > 0:
+                    empty_docs, empty_parts = np.where(partition_counts == 0)
+                    for doc_idx, pidx in zip(empty_docs, empty_parts):
+                        if doc_lengths[doc_idx] == 0:
+                            continue
+                        doc_start = doc_boundaries[doc_idx]
+                        doc_end = doc_boundaries[doc_idx + 1]
+                        doc_sketches = all_sketches[doc_start:doc_end]
+
+                        binary_rep = gray_code_to_binary(int(pidx))
+                        target_bits = (
+                            binary_rep >> np.arange(self.num_simhash_projections - 1, -1, -1)
+                        ) & 1
+                        distances = np.sum((doc_sketches > 0).astype(int) != target_bits, axis=1)
+                        nearest_local = np.argmin(distances)
+                        rep_fde[doc_idx, pidx, :] = all_projected[doc_start + nearest_local]
+
+            rep_start = rep * num_partitions * proj_dim
+            out[:, rep_start : rep_start + num_partitions * proj_dim] = rep_fde.reshape(
+                batch_size, -1
+            )
+
+        # Final projection
+        if self.final_projection_dimension is not None and self.final_projection_dimension > 0:
+            result = np.zeros((batch_size, self.final_projection_dimension), dtype=np.float32)
+            for i in range(batch_size):
+                result[i] = count_sketch_vector_from_seed(
+                    out[i], self.final_projection_dimension, self.seed
+                )
             out = result
 
         return out

@@ -57,29 +57,28 @@ def gray_code_to_binary(num: int) -> int:
 # ---------------------------------------------------------------------------
 
 
-def simhash_matrix(rng: np.random.Generator, dimension: int, num_projections: int) -> np.ndarray:
+def simhash_matrix_from_seed(dimension: int, num_projections: int, seed: int) -> np.ndarray:
     """Generate a Gaussian random projection matrix for SimHash.
 
     Parameters
     ----------
-    rng : numpy.random.Generator
-        Random number generator.
     dimension : int
         Input vector dimension.
     num_projections : int
         Number of SimHash projections.
+    seed : int
+        Random seed.
 
     Returns
     -------
     numpy.ndarray
         Float32 matrix of shape ``(dimension, num_projections)``.
     """
-    return rng.standard_normal(size=(dimension, num_projections)).astype(np.float32)
+    rng = np.random.default_rng(seed)
+    return rng.normal(loc=0.0, scale=1.0, size=(dimension, num_projections)).astype(np.float32)
 
 
-def ams_projection_matrix(
-    rng: np.random.Generator, dimension: int, projection_dim: int
-) -> np.ndarray:
+def ams_projection_matrix_from_seed(dimension: int, projection_dim: int, seed: int) -> np.ndarray:
     """Generate an AMS Sketch projection matrix.
 
     Each row has exactly one non-zero entry (+1 or -1), forming a sparse
@@ -87,18 +86,19 @@ def ams_projection_matrix(
 
     Parameters
     ----------
-    rng : numpy.random.Generator
-        Random number generator.
     dimension : int
         Input vector dimension.
     projection_dim : int
         Output (projected) dimension.
+    seed : int
+        Random seed.
 
     Returns
     -------
     numpy.ndarray
         Float32 matrix of shape ``(dimension, projection_dim)``.
     """
+    rng = np.random.default_rng(seed)
     out = np.zeros((dimension, projection_dim), dtype=np.float32)
     indices = rng.integers(0, projection_dim, size=dimension)
     signs = rng.choice(np.array([-1.0, 1.0], dtype=np.float32), size=dimension)
@@ -106,25 +106,26 @@ def ams_projection_matrix(
     return out
 
 
-def count_sketch_vector(
-    rng: np.random.Generator, input_vector: np.ndarray, final_dimension: int
+def count_sketch_vector_from_seed(
+    input_vector: np.ndarray, final_dimension: int, seed: int
 ) -> np.ndarray:
     """Project a vector to a lower dimension using Count Sketch.
 
     Parameters
     ----------
-    rng : numpy.random.Generator
-        Random number generator.
     input_vector : numpy.ndarray
         Input vector (1-D).
     final_dimension : int
         Output dimension.
+    seed : int
+        Random seed.
 
     Returns
     -------
     numpy.ndarray
         Float32 vector of shape ``(final_dimension,)``.
     """
+    rng = np.random.default_rng(seed)
     out = np.zeros(final_dimension, dtype=np.float32)
     indices = rng.integers(0, final_dimension, size=input_vector.shape[0])
     signs = rng.choice(np.array([-1.0, 1.0], dtype=np.float32), size=input_vector.shape[0])
