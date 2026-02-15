@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -40,8 +41,8 @@ from muvera import Muvera
 # ---------------------------------------------------------------------------
 
 DATASET_REPO_ID = "zeta-alpha-ai/NanoFiQA2018"
-COLBERT_MODEL_NAME = "answerdotai/answerai-colbert-small-v1"
-TOP_K = 10
+COLBERT_MODEL_NAME = "raphaelsty/neural-cherche-colbert"
+TOP_K = 25
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CACHE_DIR = Path("examples/.cache")
 
@@ -151,9 +152,17 @@ def load_nanobeir_dataset(repo_id: str) -> tuple[dict, dict, dict]:
         for row in corpus_ds
     }
     queries = {row["_id"]: row["text"] for row in queries_ds}
-    qrels = {str(row["query-id"]): {str(row["corpus-id"]): 1} for row in qrels_ds}
 
-    logging.info(f"Loaded {len(corpus)} documents, {len(queries)} queries.")
+    # Properly accumulate qrels (a query can have multiple relevant documents)
+    qrels = defaultdict(dict)
+    for row in qrels_ds:
+        qrels[str(row["query-id"])][str(row["corpus-id"])] = 1
+    qrels = dict(qrels)
+
+    total_relevant = sum(len(docs) for docs in qrels.values())
+    logging.info(
+        f"Loaded {len(corpus)} documents, {len(queries)} queries, {total_relevant} relevance judgments."
+    )
     return corpus, queries, qrels
 
 

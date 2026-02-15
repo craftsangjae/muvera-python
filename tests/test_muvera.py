@@ -27,7 +27,8 @@ def doc_single():
 
 @pytest.fixture
 def doc_batch():
-    return np.random.default_rng(0).standard_normal((5, 80, 128)).astype(np.float32)
+    rng = np.random.default_rng(0)
+    return [rng.standard_normal((80, 128)).astype(np.float32) for _ in range(5)]
 
 
 @pytest.fixture
@@ -37,7 +38,8 @@ def query_single():
 
 @pytest.fixture
 def query_batch():
-    return np.random.default_rng(1).standard_normal((3, 32, 128)).astype(np.float32)
+    rng = np.random.default_rng(1)
+    return [rng.standard_normal((32, 128)).astype(np.float32) for _ in range(3)]
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +156,7 @@ class TestShapes:
 
 class TestValidation:
     def test_wrong_ndim(self, encoder):
-        with pytest.raises(ValueError, match="2-D or 3-D"):
+        with pytest.raises(ValueError, match="Expected shape"):
             encoder.encode_documents(np.zeros(128, dtype=np.float32))
 
     def test_wrong_dimension_single(self, encoder):
@@ -162,8 +164,9 @@ class TestValidation:
             encoder.encode_documents(np.zeros((10, 64), dtype=np.float32))
 
     def test_wrong_dimension_batch(self, encoder):
-        with pytest.raises(ValueError, match="Expected shape"):
-            encoder.encode_documents(np.zeros((5, 10, 64), dtype=np.float32))
+        bad_batch = [np.zeros((10, 64), dtype=np.float32) for _ in range(5)]
+        with pytest.raises(ValueError, match="expected"):
+            encoder.encode_documents(bad_batch)
 
 
 # ---------------------------------------------------------------------------
@@ -200,13 +203,13 @@ class TestReproducibility:
 class TestSingleBatchConsistency:
     def test_document_single_vs_batch(self, encoder, doc_batch):
         batch_fdes = encoder.encode_documents(doc_batch)
-        for i in range(doc_batch.shape[0]):
+        for i in range(len(doc_batch)):
             single_fde = encoder.encode_documents(doc_batch[i])
             np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
 
     def test_query_single_vs_batch(self, encoder, query_batch):
         batch_fdes = encoder.encode_queries(query_batch)
-        for i in range(query_batch.shape[0]):
+        for i in range(len(query_batch)):
             single_fde = encoder.encode_queries(query_batch[i])
             np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
 
@@ -219,7 +222,7 @@ class TestSingleBatchConsistency:
             seed=42,
         )
         batch_fdes = enc.encode_documents(doc_batch)
-        for i in range(doc_batch.shape[0]):
+        for i in range(len(doc_batch)):
             single_fde = enc.encode_documents(doc_batch[i])
             np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
 
@@ -233,6 +236,6 @@ class TestSingleBatchConsistency:
             seed=42,
         )
         batch_fdes = enc.encode_documents(doc_batch)
-        for i in range(doc_batch.shape[0]):
+        for i in range(len(doc_batch)):
             single_fde = enc.encode_documents(doc_batch[i])
             np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
