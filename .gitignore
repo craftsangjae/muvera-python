@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Lock file (library repo — dependencies should stay flexible)
+uv.lock
+
+# Local Python version (managed by pyenv/uv, not part of the library)
+.python-version
+
+.vscode/
