@@ -18,6 +18,10 @@ No config dataclasses, no encoding-type enums, no manual seed juggling. Just Num
 
 **Key use case**: Efficiently encode ColBERT-style multi-vector embeddings for retrieval without specialized infrastructure.
 
+## Git & PR Conventions
+- **Do NOT** add `Co-Authored-By` lines to commit messages.
+- **Do NOT** add "Generated with Claude Code" or similar attribution to PR descriptions.
+
 ## Development Commands
 
 ### Environment Activation
