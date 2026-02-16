@@ -2,11 +2,35 @@ name: Publish to PyPI
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
 
 jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if version tag already exists
+        id: check
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists, skipping release"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag v$VERSION does not exist, proceeding with release"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,11 +49,12 @@ jobs:
         run: pytest -v
 
   publish:
-    needs: test
+    needs: [check-version, test]
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write    # Required for OIDC trusted publishing
-      contents: write    # Required for creating GitHub releases
+      id-token: write
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -39,15 +64,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Verify tag matches version
+      - name: Create version tag
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          PACKAGE_VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
-          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "Error: Tag version ($TAG_VERSION) does not match package version ($PACKAGE_VERSION)"
-            exit 1
-          fi
-          echo "Version verified: $TAG_VERSION"
+          VERSION=${{ needs.check-version.outputs.version }}
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
 
       - name: Install build dependencies
         run: |
@@ -63,12 +84,13 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.check-version.outputs.version }}
           files: dist/*
           generate_release_notes: true
           body: |
             ## Installation
             ```bash
-            pip install muvera-python==${{ github.ref_name }}
+            pip install muvera-python==${{ needs.check-version.outputs.version }}
             ```
 
-            See [PyPI](https://pypi.org/project/muvera-python/${{ github.ref_name }}/) for full package details.
+            See [PyPI](https://pypi.org/project/muvera-python/${{ needs.check-version.outputs.version }}/) for full package details.
