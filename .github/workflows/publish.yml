@@ -68,7 +68,7 @@ jobs:
           body: |
             ## Installation
             ```bash
-            pip install muvera==${{ github.ref_name }}
+            pip install muvera-python==${{ github.ref_name }}
             ```
 
-            See [PyPI](https://pypi.org/project/muvera/${{ github.ref_name }}/) for full package details.
+            See [PyPI](https://pypi.org/project/muvera-python/${{ github.ref_name }}/) for full package details.
