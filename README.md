@@ -64,7 +64,30 @@ scores = query_fdes @ doc_fdes.T  # (10, 100)
 | `final_projection_dimension` | None | Final dimension reduction via Count Sketch |
 | `seed` | 42 | Random seed for reproducibility |
 
+## Benchmark
+
+End-to-end retrieval on [NanoFiQA2018](https://huggingface.co/datasets/zeta-alpha-ai/NanoFiQA2018) (4598 documents, 50 queries) using `raphaelsty/neural-cherche-colbert` (dim=128):
+
+```
+=====================================================================================
+                                       RESULTS
+                            (zeta-alpha-ai/NanoFiQA2018)
+=====================================================================================
+Retriever                      | Index (s)    | Query (ms)   | Recall@25
+-------------------------------------------------------------------------------------
+ColBERT (Native MaxSim)        | 240.04       | 836.94       | 0.8400
+ColBERT + Muvera FDE           | 77.29        | 69.48        | 0.7600
+=====================================================================================
+```
+
+FDE achieves **90% of native MaxSim recall** while being **12x faster** at query time. See `examples/colbert_nanobeir.py` to reproduce.
+
+## Acknowledgments
+
+This library was inspired by [sionic-ai/muvera-py](https://github.com/sionic-ai/muvera-py), the first Python implementation of the MuVERA algorithm. Their faithful port of the C++ reference made it possible to validate correctness and understand the algorithm deeply. This project builds on that foundation with a simplified API designed for easier integration.
+
 ## References
 
 - [MuVERA: Multi-Vector Retrieval via Fixed Dimensional Encodings](https://arxiv.org/abs/2405.19504)
 - [Google graph-mining C++ implementation](https://github.com/google/graph-mining/blob/main/sketching/point_cloud/fixed_dimensional_encoding.cc)
+- [sionic-ai/muvera-py](https://github.com/sionic-ai/muvera-py)
