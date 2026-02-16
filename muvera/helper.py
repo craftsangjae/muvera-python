@@ -223,7 +223,5 @@ def partition_indices_gray_batch(sketches: np.ndarray) -> np.ndarray:
     if _RUST_AVAILABLE:
         from muvera._rust_kernels import partition_indices_gray_batch as _rs_fn
 
-        return np.asarray(
-            _rs_fn(np.ascontiguousarray(sketches, dtype=np.float32)), dtype=np.uint32
-        )
+        return np.asarray(_rs_fn(np.ascontiguousarray(sketches, dtype=np.float32)), dtype=np.uint32)
     return _partition_indices_gray_batch_python(sketches)
