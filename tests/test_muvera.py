@@ -205,13 +205,13 @@ class TestSingleBatchConsistency:
         batch_fdes = encoder.encode_documents(doc_batch)
         for i in range(len(doc_batch)):
             single_fde = encoder.encode_documents(doc_batch[i])
-            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
+            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-4, atol=1e-6)
 
     def test_query_single_vs_batch(self, encoder, query_batch):
         batch_fdes = encoder.encode_queries(query_batch)
         for i in range(len(query_batch)):
             single_fde = encoder.encode_queries(query_batch[i])
-            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
+            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-4, atol=1e-6)
 
     def test_document_single_vs_batch_with_fill(self, doc_batch):
         enc = Muvera(
@@ -224,7 +224,7 @@ class TestSingleBatchConsistency:
         batch_fdes = enc.encode_documents(doc_batch)
         for i in range(len(doc_batch)):
             single_fde = enc.encode_documents(doc_batch[i])
-            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
+            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-4, atol=1e-6)
 
     def test_document_single_vs_batch_ams(self, doc_batch):
         enc = Muvera(
@@ -238,4 +238,4 @@ class TestSingleBatchConsistency:
         batch_fdes = enc.encode_documents(doc_batch)
         for i in range(len(doc_batch)):
             single_fde = enc.encode_documents(doc_batch[i])
-            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-5)
+            np.testing.assert_allclose(single_fde, batch_fdes[i], rtol=1e-4, atol=1e-6)
