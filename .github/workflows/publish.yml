@@ -58,3 +58,16 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            ## Installation
+            ```bash
+            pip install muvera==${{ github.ref_name }}
+            ```
+
+            See [PyPI](https://pypi.org/project/muvera/${{ github.ref_name }}/) for full package details.

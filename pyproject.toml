@@ -37,6 +37,7 @@ dev = [
     "mypy>=1.0",
     "ruff>=0.4",
     "pre-commit>=3.0",
+    "scipy>=1.13.1",
 ]
 
 [project.urls]
