@@ -19,3 +19,6 @@ uv.lock
 examples/.cache/
 
 .vscode/
+
+# Benchmark results (generated, not committed)
+benchmarks/results/*.json

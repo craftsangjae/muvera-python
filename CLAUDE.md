@@ -20,6 +20,19 @@ No config dataclasses, no encoding-type enums, no manual seed juggling. Just Num
 
 ## Development Commands
 
+### Environment Activation
+**IMPORTANT**: Always activate the virtual environment before running any commands:
+```bash
+source .venv/bin/activate
+```
+
+### Post-Code-Writing Checklist
+**IMPORTANT**: After writing or modifying any code, always run:
+```bash
+ruff check .                  # Lint check (must pass)
+pytest                        # Tests (must pass)
+```
+
 ### Setup
 ```bash
 pip install -e .              # Install package in editable mode
