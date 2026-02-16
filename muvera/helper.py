@@ -138,6 +138,14 @@ def count_sketch_vector_from_seed(
 # ---------------------------------------------------------------------------
 
 
+def _partition_index_gray_python(sketch_vector: np.ndarray) -> int:
+    """Compute a Gray-code-based partition index (pure Python fallback)."""
+    partition_index = 0
+    for val in sketch_vector:
+        partition_index = append_to_gray_code(partition_index, val > 0)
+    return partition_index
+
+
 def partition_index_gray(sketch_vector: np.ndarray) -> int:
     """Compute a Gray-code-based partition index from a SimHash sketch vector.
 
@@ -151,10 +159,13 @@ def partition_index_gray(sketch_vector: np.ndarray) -> int:
     int
         Partition index.
     """
-    partition_index = 0
-    for val in sketch_vector:
-        partition_index = append_to_gray_code(partition_index, val > 0)
-    return partition_index
+    from muvera import _RUST_AVAILABLE
+
+    if _RUST_AVAILABLE:
+        from muvera._rust_kernels import partition_index_gray as _rs_fn
+
+        return int(_rs_fn(np.ascontiguousarray(sketch_vector, dtype=np.float32)))
+    return _partition_index_gray_python(sketch_vector)
 
 
 def distance_to_partition(sketch_vector: np.ndarray, partition_index: int) -> int:
@@ -184,6 +195,16 @@ def distance_to_partition(sketch_vector: np.ndarray, partition_index: int) -> in
 # ---------------------------------------------------------------------------
 
 
+def _partition_indices_gray_batch_python(sketches: np.ndarray) -> np.ndarray:
+    """Compute Gray-code partition indices for a batch (pure Python fallback)."""
+    num_projections = sketches.shape[1]
+    bits = (sketches > 0).astype(np.uint32)
+    partition_indices = np.zeros(sketches.shape[0], dtype=np.uint32)
+    for bit_idx in range(num_projections):
+        partition_indices = (partition_indices << 1) + (bits[:, bit_idx] ^ (partition_indices & 1))
+    return partition_indices
+
+
 def partition_indices_gray_batch(sketches: np.ndarray) -> np.ndarray:
     """Compute Gray-code partition indices for a batch of sketch vectors.
 
@@ -197,9 +218,10 @@ def partition_indices_gray_batch(sketches: np.ndarray) -> np.ndarray:
     numpy.ndarray
         Uint32 partition index array of shape ``(N,)``.
     """
-    num_projections = sketches.shape[1]
-    bits = (sketches > 0).astype(np.uint32)
-    partition_indices = np.zeros(sketches.shape[0], dtype=np.uint32)
-    for bit_idx in range(num_projections):
-        partition_indices = (partition_indices << 1) + (bits[:, bit_idx] ^ (partition_indices & 1))
-    return partition_indices
+    from muvera import _RUST_AVAILABLE
+
+    if _RUST_AVAILABLE:
+        from muvera._rust_kernels import partition_indices_gray_batch as _rs_fn
+
+        return np.asarray(_rs_fn(np.ascontiguousarray(sketches, dtype=np.float32)), dtype=np.uint32)
+    return _partition_indices_gray_batch_python(sketches)

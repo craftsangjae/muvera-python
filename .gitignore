@@ -22,3 +22,10 @@ examples/.cache/
 
 # Benchmark results (generated, not committed)
 benchmarks/results/*.json
+
+target/
+
+# Rust/maturin build artifacts
+*.so
+*.dylib
+*.pyd

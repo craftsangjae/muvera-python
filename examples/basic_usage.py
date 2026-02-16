@@ -83,15 +83,17 @@ def main() -> None:
 
     # --- Generate random normalized data (ColBERT-style unit vectors) ---
     print("Generating random normalized embeddings...")
-    documents_raw = rng.standard_normal((num_documents, num_doc_vectors, dimension)).astype(
-        np.float32
-    )
-    queries_raw = rng.standard_normal((num_queries, num_query_vectors, dimension)).astype(
-        np.float32
-    )
+    documents = []
+    for _ in range(num_documents):
+        doc = rng.standard_normal((num_doc_vectors, dimension)).astype(np.float32)
+        doc /= np.linalg.norm(doc, axis=-1, keepdims=True)
+        documents.append(doc)
 
-    documents = documents_raw / np.linalg.norm(documents_raw, axis=-1, keepdims=True)
-    queries = queries_raw / np.linalg.norm(queries_raw, axis=-1, keepdims=True)
+    queries = []
+    for _ in range(num_queries):
+        q = rng.standard_normal((num_query_vectors, dimension)).astype(np.float32)
+        q /= np.linalg.norm(q, axis=-1, keepdims=True)
+        queries.append(q)
 
     # --- Initialize encoder (Pareto-optimal params from the paper) ---
     encoder = Muvera(
