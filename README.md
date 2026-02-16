@@ -13,7 +13,7 @@ This library wraps the full algorithm behind a **single `Muvera` class** with a 
 ## Installation
 
 ```bash
-pip install muvera
+pip install muvera-python
 ```
 
 Development install:

@@ -1,6 +1,6 @@
 # Release Guide
 
-Complete guide for releasing muvera to PyPI and creating GitHub releases.
+Complete guide for releasing muvera-python to PyPI and creating GitHub releases.
 
 ## 🔧 One-time Setup
 
@@ -10,7 +10,7 @@ Complete guide for releasing muvera to PyPI and creating GitHub releases.
 2. Go to Account Settings → Publishing → "Add a new pending publisher"
 3. Fill in the form:
    ```
-   PyPI Project Name: muvera
+   PyPI Project Name: muvera-python
    Owner: craftsangjae
    Repository name: muvera-python
    Workflow name: publish.yml
@@ -18,7 +18,7 @@ Complete guide for releasing muvera to PyPI and creating GitHub releases.
    ```
 4. Click "Add"
 
-**Note**: The project name `muvera` will be reserved. First release will claim it.
+**Note**: The project name `muvera-python` will be reserved. First release will claim it.
 
 ### 2. TestPyPI (Optional, for testing)
 
@@ -140,11 +140,11 @@ git push origin v0.1.0
 
    ### 📦 Installation
    ```bash
-   pip install muvera
+   pip install muvera-python
    ```
 
    ### 🔗 Links
-   - PyPI: https://pypi.org/project/muvera/
+   - PyPI: https://pypi.org/project/muvera-python/
    - Documentation: https://github.com/craftsangjae/muvera-python
    - Paper: https://arxiv.org/abs/2405.19504
    ```
@@ -174,12 +174,12 @@ Add to `.github/workflows/publish.yml`:
 # Wait ~2 minutes for PyPI to process
 
 # Check PyPI page
-open https://pypi.org/project/muvera/
+open https://pypi.org/project/muvera-python/
 
 # Test installation in fresh environment
 python -m venv test_env
 source test_env/bin/activate
-pip install muvera
+pip install muvera-python
 
 # Quick test
 python -c "from muvera import Muvera; print(Muvera.__doc__)"
@@ -277,7 +277,7 @@ After tagging:
 - [ ] GitHub Actions workflow succeeds
 - [ ] Package appears on PyPI
 - [ ] GitHub Release created
-- [ ] Installation tested (`pip install muvera`)
+- [ ] Installation tested (`pip install muvera-python`)
 - [ ] README updated
 
 ---
@@ -332,5 +332,5 @@ git push origin "v$VERSION"
 gh release create "v$VERSION" --generate-notes
 
 # Verify
-pip install --upgrade muvera
+pip install --upgrade muvera-python
 ```
