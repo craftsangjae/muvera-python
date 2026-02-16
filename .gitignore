@@ -24,3 +24,8 @@ examples/.cache/
 benchmarks/results/*.json
 
 target/
+
+# Rust/maturin build artifacts
+*.so
+*.dylib
+*.pyd
