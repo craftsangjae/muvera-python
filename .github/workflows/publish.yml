@@ -40,16 +40,73 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install maturin
+          maturin develop --release
           pip install -e ".[dev]"
 
       - name: Run tests
         run: pytest -v
 
-  publish:
+  build-wheels:
     needs: [check-version, test]
+    if: needs.check-version.outputs.should_release == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64
+          - os: ubuntu-latest
+            target: aarch64
+          - os: macos-latest
+            target: x86_64
+          - os: macos-latest
+            target: aarch64
+          - os: windows-latest
+            target: x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist
+          manylinux: auto
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.target }}
+          path: dist
+
+  build-sdist:
+    needs: [check-version, test]
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+  publish:
+    needs: [check-version, build-wheels, build-sdist]
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -59,24 +116,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Create version tag
         run: |
           VERSION=${{ needs.check-version.outputs.version }}
           git tag "v$VERSION"
           git push origin "v$VERSION"
 
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build hatchling
-
-      - name: Build wheel and sdist
-        run: python -m build
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

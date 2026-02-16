@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "muvera-python"
@@ -45,11 +45,9 @@ Homepage = "https://github.com/craftsangjae/muvera-python"
 Repository = "https://github.com/craftsangjae/muvera-python"
 Issues = "https://github.com/craftsangjae/muvera-python/issues"
 
-[tool.hatch.build.targets.wheel]
-packages = ["muvera"]
-
-[tool.hatch.build.targets.sdist]
-include = ["muvera/", "README.md", "LICENSE"]
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "muvera._rust_kernels"
 
 # ---------------------------------------------------------------------------
 # Ruff

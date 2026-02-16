@@ -257,6 +257,30 @@ class Muvera:
         self, sketches: np.ndarray, projected: np.ndarray, is_query: bool
     ) -> np.ndarray:
         """Aggregate vectors into partitions for a single point cloud."""
+        from muvera import _RUST_AVAILABLE
+
+        if _RUST_AVAILABLE:
+            from muvera._rust_kernels import aggregate_single as _rs_fn
+
+            return np.asarray(
+                _rs_fn(
+                    np.ascontiguousarray(sketches, dtype=np.float32),
+                    np.ascontiguousarray(projected, dtype=np.float32),
+                    self._num_partitions,
+                    self._proj_dim,
+                    is_query,
+                    self.fill_empty_partitions,
+                    self.num_simhash_projections,
+                ),
+                dtype=np.float32,
+            )
+
+        return self._aggregate_single_python(sketches, projected, is_query)
+
+    def _aggregate_single_python(
+        self, sketches: np.ndarray, projected: np.ndarray, is_query: bool
+    ) -> np.ndarray:
+        """Aggregate vectors into partitions for a single point cloud (Python fallback)."""
         num_points = sketches.shape[0]
         partition_counts = np.zeros(self._num_partitions, dtype=np.int32)
         rep_fde = np.zeros(self._num_partitions * self._proj_dim, dtype=np.float32)
@@ -341,6 +365,23 @@ class Muvera:
         if not self.fill_empty_partitions or self.num_simhash_projections == 0:
             return
 
+        from muvera import _RUST_AVAILABLE
+
+        if _RUST_AVAILABLE:
+            from muvera._rust_kernels import fill_empty_partitions_batch as _rs_fn
+
+            _rs_fn(
+                rep_fde,
+                np.ascontiguousarray(partition_counts, dtype=np.int32),
+                np.ascontiguousarray(all_sketches, dtype=np.float32),
+                np.ascontiguousarray(all_projected, dtype=np.float32),
+                np.ascontiguousarray(doc_boundaries, dtype=np.int64),
+                self.num_simhash_projections,
+                self._num_partitions,
+                self._proj_dim,
+            )
+            return
+
         empty_docs, empty_parts = np.where(partition_counts == 0)
         for doc_idx, pidx in zip(empty_docs, empty_parts):
             doc_start, doc_end = doc_boundaries[doc_idx], doc_boundaries[doc_idx + 1]
@@ -362,6 +403,19 @@ class Muvera:
         all_projected: np.ndarray,
     ) -> None:
         """Scatter-add projected vectors into partitions."""
+        from muvera import _RUST_AVAILABLE
+
+        if _RUST_AVAILABLE:
+            from muvera._rust_kernels import scatter_add_partitions as _rs_fn
+
+            _rs_fn(
+                rep_fde,
+                np.ascontiguousarray(doc_indices, dtype=np.uint32),
+                np.ascontiguousarray(part_indices, dtype=np.uint32),
+                np.ascontiguousarray(all_projected, dtype=np.float32),
+            )
+            return
+
         doc_part = doc_indices * self._num_partitions + part_indices
         base = doc_part * self._proj_dim
         flat_rep_fde = rep_fde.reshape(-1)
