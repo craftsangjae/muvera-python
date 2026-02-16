@@ -28,7 +28,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Required for OIDC trusted publishing
+      id-token: write    # Required for OIDC trusted publishing
+      contents: write    # Required for creating GitHub releases
 
     steps:
       - uses: actions/checkout@v4
