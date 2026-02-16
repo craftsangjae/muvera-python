@@ -14,7 +14,7 @@ MuVERA (Multi-Vector Retrieval via Fixed Dimensional Encoding Algorithm) is a Py
 
 No config dataclasses, no encoding-type enums, no manual seed juggling. Just NumPy arrays in, NumPy arrays out.
 
-**Distribution Plan**: The library will be published to PyPI for easy installation via `pip install muvera`.
+**Distribution Plan**: The library will be published to PyPI for easy installation via `pip install muvera-python`.
 
 **Key use case**: Efficiently encode ColBERT-style multi-vector embeddings for retrieval without specialized infrastructure.
 
@@ -200,7 +200,7 @@ Output dimension: `num_repetitions * 2^num_simhash_projections * projection_dime
 **OIDC Setup (one-time):**
 1. Go to [PyPI](https://pypi.org) → Account settings → Publishing
 2. Add a new pending publisher:
-   - PyPI Project Name: `muvera`
+   - PyPI Project Name: `muvera-python`
    - Owner: `craftsangjae`
    - Repository: `muvera-python`
    - Workflow: `publish.yml`

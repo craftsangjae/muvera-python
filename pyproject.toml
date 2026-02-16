@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "muvera"
-version = "0.1.0"
+name = "muvera-python"
+version = "0.1.1"
 description = "MuVERA: Multi-Vector Retrieval via Fixed Dimensional Encodings"
 readme = "README.md"
 license = "MIT"
@@ -12,7 +12,7 @@ requires-python = ">=3.9"
 authors = [
     { name = "craftsangjae" },
 ]
-keywords = ["muvera", "multi-vector", "retrieval", "embedding", "fixed-dimensional-encoding"]
+keywords = ["muvera", "muvera-python", "multi-vector", "retrieval", "embedding", "fixed-dimensional-encoding"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
