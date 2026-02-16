@@ -55,6 +55,7 @@ jobs:
     needs: [check-version, test]
     if: needs.check-version.outputs.should_release == 'true'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -65,8 +66,6 @@ jobs:
             target: x86_64
           - os: macos-latest
             target: aarch64
-          - os: windows-latest
-            target: x86_64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +104,7 @@ jobs:
 
   publish:
     needs: [check-version, build-wheels, build-sdist]
-    if: needs.check-version.outputs.should_release == 'true'
+    if: always() && needs.check-version.outputs.should_release == 'true' && (needs.build-wheels.result == 'success' || needs.build-sdist.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
