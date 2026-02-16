@@ -68,25 +68,22 @@ python examples/colbert_nanobeir.py
 
 ### Deployment
 
-**Tag-based release with OIDC trusted publishing:**
+**Version bump → merge → auto-release:**
 
 ```bash
 # 1. Update version in pyproject.toml
 # version = "0.2.0"
 
-# 2. Commit the version bump
-git add pyproject.toml
-git commit -m "Bump version to 0.2.0"
-
-# 3. Create and push tag
-git tag v0.2.0
-git push origin v0.2.0
-
+# 2. Create PR and merge to main
 # GitHub Actions will automatically:
-# - Run all tests
-# - Verify tag matches pyproject.toml version
+# - Detect the new version (tag doesn't exist yet)
+# - Run full test suite
+# - Create git tag v0.2.0
 # - Build wheel and sdist
-# - Publish to PyPI via OIDC (no API token needed)
+# - Publish to PyPI via OIDC
+# - Create GitHub Release
+#
+# If version is unchanged, all release steps are skipped.
 ```
 
 **Local build (for testing):**
@@ -180,26 +177,24 @@ Output dimension: `num_repetitions * 2^num_simhash_projections * projection_dime
 - Tests example scripts
 
 **`.github/workflows/publish.yml`** - PyPI Publishing
-- Triggers: Version tags (e.g., `v0.2.0`)
-- Verifies tag matches `pyproject.toml` version
+- Triggers: Push to main
+- Checks if `v{version}` tag already exists; skips release if it does
 - Runs full test suite
-- Builds wheel and source distribution
-- Publishes to PyPI using OIDC trusted publishing (no API token needed)
+- Creates git tag, builds wheel/sdist, publishes to PyPI via OIDC
+- Creates GitHub Release with release notes
 
 ### Deployment Policy
 
-**Tag-based releases with OIDC:**
-- All releases are triggered by pushing version tags
+**Auto-release on version bump:**
+- Merging a PR that changes the version in `pyproject.toml` triggers a release
+- If the version is unchanged, all release steps are skipped
 - Uses OpenID Connect (OIDC) for secure, token-free authentication to PyPI
-- Automatic version verification prevents mismatched releases
 
 **Pre-deployment checklist:**
 1. Update `version` in `pyproject.toml`
 2. Run tests locally: `pytest`
 3. Check code quality: `ruff check . && mypy muvera`
-4. Commit: `git commit -m "Bump version to X.Y.Z"`
-5. Tag: `git tag vX.Y.Z`
-6. Push tag: `git push origin vX.Y.Z`
+4. Create PR and merge to main
 
 **OIDC Setup (one-time):**
 1. Go to [PyPI](https://pypi.org) → Account settings → Publishing
